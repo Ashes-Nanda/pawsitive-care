@@ -1,0 +1,13 @@
+@keyframes pointer-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-pointer {
+  animation: pointer-spin 2s linear infinite;
+}
+
