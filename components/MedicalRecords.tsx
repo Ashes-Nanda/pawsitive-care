@@ -1,17 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Upload, File, Trash2, Download, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-import { storage } from "@/lib/firebase"
-import { ref, uploadBytes, getDownloadURL, deleteObject, listAll } from "firebase/storage"
-
-// Hardcoded user ID (since there's only one user)
-const USER_ID = "single-user"
 
 interface MedicalRecord {
   id: string
@@ -22,35 +17,12 @@ interface MedicalRecord {
 export default function MedicalRecords() {
   const [records, setRecords] = useState<MedicalRecord[]>([])
 
-  // Fetch uploaded files from Firebase Storage
-  useEffect(() => {
-    const fetchRecords = async () => {
-      const storageRef = ref(storage, `medical-records/${USER_ID}`)
-      const result = await listAll(storageRef)
-
-      const files = await Promise.all(
-        result.items.map(async (item) => ({
-          id: item.name,
-          name: item.name,
-          url: await getDownloadURL(item),
-        }))
-      )
-
-      setRecords(files)
-    }
-
-    fetchRecords()
-  }, [])
-
-  // Handle File Upload to Firebase Storage
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle File Upload to Local State
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    const fileRef = ref(storage, `medical-records/${USER_ID}/${file.name}`)
-    await uploadBytes(fileRef, file)
-    const url = await getDownloadURL(fileRef)
-
+    const url = URL.createObjectURL(file)
     const newRecord: MedicalRecord = { id: file.name, name: file.name, url }
     setRecords([...records, newRecord])
 
@@ -60,12 +32,9 @@ export default function MedicalRecords() {
     })
   }
 
-  // Handle File Deletion from Firebase Storage
-  const handleDelete = async (id: string) => {
-    const fileRef = ref(storage, `medical-records/${USER_ID}/${id}`)
-    await deleteObject(fileRef)
+  // Handle File Deletion from Local State
+  const handleDelete = (id: string) => {
     setRecords(records.filter(record => record.id !== id))
-
     toast({
       title: "File Deleted",
       description: "The file has been removed from your records.",
@@ -126,7 +95,7 @@ export default function MedicalRecords() {
                 <Button variant="outline" size="sm" onClick={() => handlePrint(record)}>
                   <Printer className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="sm" >
+                <Button variant="outline" size="sm" onClick={() => handleDelete(record.id)}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -137,4 +106,3 @@ export default function MedicalRecords() {
     </Card>
   )
 }
-
