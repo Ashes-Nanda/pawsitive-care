@@ -1,134 +1,114 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from "@/components/ui/button"
-import { AlertCircle, CheckCircle2 } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 enum ConnectionStatus {
   Disconnected,
   Connecting,
   Connected,
-  Error
+  Error,
 }
 
-const buttonVariants = {
-  idle: { scale: 1 },
-  hover: { scale: 1.05 },
-  tap: { scale: 0.95 }
+interface ConnectTailTrackerButtonProps {
+  onConnectToggle: (connected: boolean) => void; // ✅ Function to toggle connection
 }
 
-const alertVariants = {
-  hidden: { opacity: 0, y: -20 },
-  visible: { opacity: 1, y: 0 }
-}
+export function ConnectTailTrackerButton({
+  onConnectToggle,
+}: ConnectTailTrackerButtonProps) {
+  const [status, setStatus] = useState<ConnectionStatus>(
+    ConnectionStatus.Disconnected
+  );
 
-export function ConnectTailTrackerButton() {
-  const [status, setStatus] = useState<ConnectionStatus>(ConnectionStatus.Disconnected)
-
-  const handleConnect = () => {
-    setStatus(ConnectionStatus.Connecting)
-    // Simulate connection process
-    setTimeout(() => {
-      const success = Math.random() > 0.3 // 70% success rate for demonstration
-      setStatus(success ? ConnectionStatus.Connected : ConnectionStatus.Error)
-    }, 3000)
-  }
-
-  const buttonText = () => {
-    switch (status) {
-      case ConnectionStatus.Disconnected:
-        return "Connect to Tail Tracker"
-      case ConnectionStatus.Connecting:
-        return "Connecting..."
-      case ConnectionStatus.Connected:
-        return "Connected"
-      case ConnectionStatus.Error:
-        return "Retry Connection"
+  const handleToggleConnection = () => {
+    if (status === ConnectionStatus.Connected) {
+      // ✅ Disconnecting
+      setStatus(ConnectionStatus.Disconnected);
+      onConnectToggle(false);
+    } else {
+      // ✅ Connecting
+      setStatus(ConnectionStatus.Connecting);
+      setTimeout(() => {
+        const success = Math.random() > 0.3; // Simulate a 70% success rate
+        if (success) {
+          setStatus(ConnectionStatus.Connected);
+          onConnectToggle(true);
+        } else {
+          setStatus(ConnectionStatus.Error);
+        }
+      }, 3000);
     }
-  }
+  };
 
   return (
     <AnimatePresence mode="wait">
       <div className="space-y-4">
-        <motion.div
-          variants={buttonVariants}
-          initial="idle"
-          whileHover="hover"
-          whileTap="tap"
-        >
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
-            onClick={handleConnect}
+            onClick={handleToggleConnection}
             disabled={status === ConnectionStatus.Connecting}
             className={`w-full h-16 text-lg font-semibold rounded-full transition-all duration-300 ${
               status === ConnectionStatus.Connected
-                ? 'bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600'
-                : 'bg-gradient-to-r from-blue-400 to-indigo-500 hover:from-blue-500 hover:to-indigo-600'
-            } shadow-lg hover:shadow-xl transform hover:-translate-y-1`}
-            aria-label={buttonText()}
+                ? "bg-red-500 hover:bg-red-600" // 🔴 Disconnect
+                : "bg-blue-500 hover:bg-blue-600" // 🔵 Connect
+            } shadow-lg`}
+            aria-label={
+              status === ConnectionStatus.Connecting
+                ? "Connecting..."
+                : "Toggle Connection"
+            }
           >
-            {status === ConnectionStatus.Connecting ? (
-              <div className="radar-loader w-12 h-12 scale-75">
-                <span></span>
-              </div>
-            ) : (
-              buttonText()
-            )}
+            {status === ConnectionStatus.Connecting
+              ? "⏳ Connecting..."
+              : status === ConnectionStatus.Connected
+              ? "Disconnect"
+              : "Connect to Tail Tracker"}
           </Button>
         </motion.div>
 
-        <AnimatePresence>
-          {status === ConnectionStatus.Connected && (
-            <motion.div
-              variants={alertVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
+        {/* ✅ Success Alert */}
+        {status === ConnectionStatus.Connected && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Alert
+              variant="default"
+              className="bg-emerald-100 border-emerald-300"
             >
-              <Alert variant="default" className="bg-emerald-100 border-emerald-300">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                <AlertTitle className="text-emerald-800">Successfully Connected!</AlertTitle>
-                <AlertDescription className="text-emerald-600">
-                  Your furry friend is now tracked!
-                </AlertDescription>
-              </Alert>
-              <motion.div
-                className="mt-4 flex justify-center"
-                animate={{ 
-                  rotate: [-10, 10, -10],
-                  y: [0, -5, 0]
-                }}
-                transition={{ 
-                  duration: 0.5, 
-                  repeat: Infinity, 
-                  repeatType: "reverse" 
-                }}
-              >
-                <span role="img" aria-label="Dog paw" className="text-4xl">🐾</span>
-              </motion.div>
-            </motion.div>
-          )}
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <AlertTitle className="text-emerald-800">
+                Successfully Connected!
+              </AlertTitle>
+              <AlertDescription className="text-emerald-600">
+                Your furry friend is now being tracked.
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
 
-          {status === ConnectionStatus.Error && (
-            <motion.div
-              variants={alertVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-            >
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Connection Failed!</AlertTitle>
-                <AlertDescription>
-                  Please try again or check your device settings.
-                </AlertDescription>
-              </Alert>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* ❌ Error Alert */}
+        {status === ConnectionStatus.Error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Connection Failed!</AlertTitle>
+              <AlertDescription>
+                Please try again or check your device.
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
       </div>
     </AnimatePresence>
-  )
+  );
 }
-

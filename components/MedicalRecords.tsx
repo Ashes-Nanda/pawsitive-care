@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Upload, File, Trash2, Download, Printer } from "lucide-react"
+import { useState } from 'react'
+import { Upload, File, Trash2, Download, Printer } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,91 +23,30 @@ interface MedicalRecord {
 export default function MedicalRecords() {
   const [records, setRecords] = useState<MedicalRecord[]>([])
 
-  // Firestore document reference
-  const recordRef = doc(db, "record", "medrec")
-
-  // Fetch uploaded files from both Firebase Storage & Firestore
-  useEffect(() => {
-    const fetchRecords = async () => {
-      try {
-        const storageRef = ref(storage, `medical-records/${USER_ID}`)
-        const storageFiles = await listAll(storageRef)
-
-        const fileMetadata = await Promise.all(
-          storageFiles.items.map(async (item) => ({
-            id: item.name,
-            name: item.name,
-            url: await getDownloadURL(item),
-          }))
-        )
-
-        // Fetch Firestore records
-        const docSnap = await getDoc(recordRef)
-        const firestoreRecords: MedicalRecord[] = docSnap.exists() ? docSnap.data().records || [] : []
-
-        // Merge both Storage & Firestore data (avoid duplicates)
-        const mergedRecords = [...firestoreRecords, ...fileMetadata].filter(
-          (v, i, a) => a.findIndex(t => t.id === v.id) === i
-        )
-
-        setRecords(mergedRecords)
-
-        // Save merged data to Firestore (if needed)
-        if (docSnap.exists()) {
-          await updateDoc(recordRef, { records: mergedRecords })
-        } else {
-          await setDoc(recordRef, { records: mergedRecords })
-        }
-      } catch (error) {
-        console.error("Error fetching records:", error)
-      }
-    }
-
-    fetchRecords()
-  }, [])
-
-  // Handle File Upload to Firebase Storage & Firestore
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file) return
-
-    const fileRef = ref(storage, `medical-records/${USER_ID}/${file.name}`)
-    await uploadBytes(fileRef, file)
-    const url = await getDownloadURL(fileRef)
-
-    const newRecord: MedicalRecord = { id: file.name, name: file.name, url }
-    const updatedRecords = [...records, newRecord]
-    setRecords(updatedRecords)
-
-    // Save to Firestore
-    await setDoc(recordRef, { records: updatedRecords }, { merge: true })
-
-    toast({
-      title: "File Uploaded",
-      description: `${file.name} has been successfully uploaded.`,
-    })
+    if (file) {
+      const newRecord: MedicalRecord = {
+        id: Date.now().toString(),
+        name: file.name,
+        type: file.type,
+        url: URL.createObjectURL(file)
+      }
+      setRecords([...records, newRecord])
+      toast({
+        title: "File Uploaded",
+        description: `${file.name} has been successfully uploaded.`,
+      })
+    }
   }
 
-  // Handle File Deletion from Firebase Storage & Firestore
-  const handleDelete = async (id: string) => {
-    try {
-      // Delete from Storage
-      const fileRef = ref(storage, `medical-records/${USER_ID}/${id}`)
-      await deleteObject(fileRef)
-
-      // Delete from Firestore
-      const updatedRecords = records.filter(record => record.id !== id)
-      setRecords(updatedRecords)
-      await updateDoc(recordRef, { records: updatedRecords })
-
-      toast({
-        title: "File Deleted",
-        description: "The file has been removed from your records.",
-        variant: "destructive",
-      })
-    } catch (error) {
-      console.error("Error deleting file:", error)
-    }
+  const handleDelete = (id: string) => {
+    setRecords(records.filter(record => record.id !== id))
+    toast({
+      title: "File Deleted",
+      description: "The file has been removed from your records.",
+      variant: "destructive",
+    })
   }
 
   // Handle File Download
