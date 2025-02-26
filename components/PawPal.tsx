@@ -9,6 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Textarea } from "@/components/ui/textarea"
 import { PawPalLogo } from './PawPalLogo'
 import { motion } from 'framer-motion'
+import { getChatResponse } from '@/utils/geminiService'
 
 interface Message {
   id: string
@@ -45,79 +46,35 @@ export default function PawPal() {
   const [dogProfile, setDogProfile] = useState({ name: '', breed: '', age: '' })
   const [searchQuery, setSearchQuery] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (input.trim()) {
-      const newMessage: Message = { 
-        id: Date.now().toString(), 
-        text: input, 
-        sender: 'user',
-        timestamp: new Date(),
-        status: 'sent'
-      }
-      setMessages([...messages, newMessage])
-      setInput('')
-      setTimeout(() => handleBotResponse(input), 500)
+    if (!input.trim()) return
+
+    const userMessage = input.trim()
+    setInput('')
+    setMessages(prev => [...prev, { id: Date.now().toString(), text: userMessage, sender: 'user', timestamp: new Date(), status: 'sent' }])
+    setIsLoading(true)
+
+    try {
+      const response = await getChatResponse(userMessage, dogProfile)
+      setMessages(prev => [...prev, { id: Date.now().toString(), text: response, sender: 'bot', timestamp: new Date(), status: 'delivered' }])
+    } catch (error) {
+      console.error('Error getting response:', error)
+      setMessages(prev => [...prev, { id: Date.now().toString(), text: "I'm sorry, I couldn't process that request. Please try again.", sender: 'bot', timestamp: new Date(), status: 'delivered' }])
+    } finally {
+      setIsLoading(false)
     }
-  }
-
-  const handleBotResponse = (userInput: string) => {
-    const lowerInput = userInput.toLowerCase()
-    let botResponse = "I'm not sure about that. Can you ask me something else about dog care? 🤔"
-    let quickReplies: string[] = []
-
-    if (lowerInput.includes('health') || lowerInput.includes('healthy')) {
-      botResponse = dogKnowledgeBase['health tips']
-      quickReplies = ['Vaccinations', 'Weight management', 'Nutrition advice']
-    } else if (lowerInput.includes('food') || lowerInput.includes('eat') || lowerInput.includes('nutrition')) {
-      botResponse = dogKnowledgeBase['nutrition advice']
-      quickReplies = ['Health tips', 'Weight management']
-    } else if (lowerInput.includes('train') || lowerInput.includes('training')) {
-      botResponse = dogKnowledgeBase['training help']
-      quickReplies = ['Activities', 'Behavior advice']
-    } else if (lowerInput.includes('vaccine') || lowerInput.includes('shot')) {
-      botResponse = dogKnowledgeBase['vaccinations']
-      quickReplies = ['Health tips', 'Vet visit frequency']
-    } else if (lowerInput.includes('weight') || lowerInput.includes('diet')) {
-      botResponse = dogKnowledgeBase['weight management']
-      quickReplies = ['Nutrition advice', 'Activities']
-    } else if (lowerInput.includes('play') || lowerInput.includes('activity')) {
-      botResponse = dogKnowledgeBase['activities']
-      quickReplies = ['Training help', 'Health tips']
-    }
-
-    if (dogProfile.name) {
-      botResponse = `Regarding ${dogProfile.name}, ${botResponse.toLowerCase()}`
-    }
-
-    const newMessage: Message = { 
-      id: Date.now().toString(), 
-      text: botResponse, 
-      sender: 'bot',
-      timestamp: new Date(),
-      status: 'delivered',
-      quickReplies
-    }
-    setMessages(prevMessages => [...prevMessages, newMessage])
-
-    // Simulate message being read after 2 seconds
-    setTimeout(() => {
-      setMessages(prevMessages => 
-        prevMessages.map(msg => 
-          msg.id === newMessage.id ? { ...msg, status: 'read' } : msg
-        )
-      )
-    }, 2000)
   }
 
   const handleQuickReply = (reply: string) => {
     setInput(reply)
-    handleSend({ preventDefault: () => {} } as React.FormEvent)
+    handleSubmit({ preventDefault: () => {} } as React.FormEvent)
   }
 
   const handleFeedback = (positive: boolean) => {
@@ -228,10 +185,15 @@ export default function PawPal() {
             </motion.div>
           </div>
         ))}
+        {isLoading && (
+          <div className="text-center text-zinc-400">
+            Thinking...
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </CardContent>
       <CardFooter className="bg-zinc-100 dark:bg-zinc-800 p-4">
-        <form onSubmit={handleSend} className="flex w-full space-x-2">
+        <form onSubmit={handleSubmit} className="flex w-full space-x-2">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -239,7 +201,7 @@ export default function PawPal() {
             className="flex-grow bg-white dark:bg-zinc-700 resize-none rounded-md border-emerald-300 dark:border-emerald-600 focus:ring-emerald-500 focus:border-emerald-500"
             rows={1}
           />
-          <Button type="submit" className="bg-black hover:bg-gray-800 text-white">
+          <Button type="submit" className="bg-black hover:bg-gray-800 text-white" disabled={isLoading}>
             <Send className="w-4 h-4" />
           </Button>
         </form>
