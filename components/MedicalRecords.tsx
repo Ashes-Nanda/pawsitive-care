@@ -1,12 +1,18 @@
 "use client"
 
-import { useState } from "react"
-import { Upload, File, Trash2, Download, Printer } from "lucide-react"
+import { useState } from 'react'
+import { Upload, File, Trash2, Download, Printer } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
+import { db, storage } from "@/lib/firebase"
+import { ref, uploadBytes, getDownloadURL, deleteObject, listAll } from "firebase/storage"
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
+
+// Hardcoded user ID (since there's only one user)
+const USER_ID = "single-user"
 
 interface MedicalRecord {
   id: string
@@ -17,22 +23,23 @@ interface MedicalRecord {
 export default function MedicalRecords() {
   const [records, setRecords] = useState<MedicalRecord[]>([])
 
-  // Handle File Upload to Local State
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file) return
-
-    const url = URL.createObjectURL(file)
-    const newRecord: MedicalRecord = { id: file.name, name: file.name, url }
-    setRecords([...records, newRecord])
-
-    toast({
-      title: "File Uploaded",
-      description: `${file.name} has been successfully uploaded.`,
-    })
+    if (file) {
+      const newRecord: MedicalRecord = {
+        id: Date.now().toString(),
+        name: file.name,
+        type: file.type,
+        url: URL.createObjectURL(file)
+      }
+      setRecords([...records, newRecord])
+      toast({
+        title: "File Uploaded",
+        description: `${file.name} has been successfully uploaded.`,
+      })
+    }
   }
 
-  // Handle File Deletion from Local State
   const handleDelete = (id: string) => {
     setRecords(records.filter(record => record.id !== id))
     toast({
