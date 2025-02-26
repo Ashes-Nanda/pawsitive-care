@@ -1,29 +1,29 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
 
 export default function SignUpPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     // User Info
-    name: '',
-    email: '',
-    password: '',
+    name: "",
+    email: "",
+    password: "",
     // Pet Info
-    petName: '',
-    species: '',
-    breed: '',
-    age: '',
-    weight: '',
-    medicalConditions: '',
-    medications: '',
-    allergies: ''
+    petName: "",
+    species: "",
+    breed: "",
+    age: "",
+    weight: "",
+    medicalConditions: "",
+    medications: "",
+    allergies: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,17 +32,17 @@ export default function SignUpPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    router.push('/signin');
+    console.log("Form submitted:", formData);
+    router.push("/signin");
   };
 
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold text-emerald-400 mb-6">Sign Up</h1>
-      
+
       {/* Google Sign Up Button */}
-      <Button 
-        onClick={() => console.log('Google sign up clicked')}
+      <Button
+        onClick={() => console.log("Google sign up clicked")}
         className="w-full mb-4 flex items-center justify-center gap-2 bg-white text-black border hover:bg-gray-100"
       >
         <FcGoogle className="w-5 h-5" />
@@ -54,7 +54,9 @@ export default function SignUpPage() {
           <div className="w-full border-t border-gray-300"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-background text-muted-foreground">Or continue with email</span>
+          <span className="px-2 bg-background text-muted-foreground">
+            Or continue with email
+          </span>
         </div>
       </div>
 
@@ -160,7 +162,7 @@ export default function SignUpPage() {
                 />
               </div>
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="medicalConditions">Medical Conditions</Label>
               <Input
@@ -171,7 +173,7 @@ export default function SignUpPage() {
                 placeholder="Enter conditions separated by commas"
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="medications">Medications</Label>
               <Input
@@ -182,7 +184,7 @@ export default function SignUpPage() {
                 placeholder="Enter medications separated by commas"
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="allergies">Allergies</Label>
               <Input
@@ -197,13 +199,16 @@ export default function SignUpPage() {
         </Card>
 
         <div className="flex gap-4">
-          <Button type="submit" className="bg-emerald-500 text-white hover:bg-emerald-600">
+          <Button
+            type="submit"
+            className="bg-emerald-500 text-white hover:bg-emerald-600"
+          >
             Sign Up
           </Button>
-          <Button 
-            type="button" 
+          <Button
+            type="button"
             variant="outline"
-            onClick={() => router.push('/signin')}
+            onClick={() => router.push("/signin")}
           >
             Already have an account? Sign In
           </Button>
