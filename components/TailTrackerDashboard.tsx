@@ -15,6 +15,11 @@ import SearchFeature from "./SearchFeature";
 // ✅ Lazy load MockGPSMap to prevent SSR issues
 const MockGPSMap = dynamic(() => import("@/components/MockGPSMap"), {
   ssr: false,
+  loading: () => (
+    <div className="h-[500px] w-full bg-gray-200 flex items-center justify-center">
+      Loading map...
+    </div>
+  ),
 });
 
 const mockTailTrackerData = {
@@ -23,13 +28,41 @@ const mockTailTrackerData = {
   batteryLevel: 75, // Default battery
   lastUpdate: new Date().toISOString(),
   activityLevel: "Moderate",
+  city: "New Delhi", // Added city information
 };
 
 export default function TailTrackerDashboard() {
   const [trackerData, setTrackerData] = useState(mockTailTrackerData);
+  const [homeLocation, setHomeLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [geofenceRadius, setGeofenceRadius] = useState<number | null>(null);
   const [isOutsideGeofence, setIsOutsideGeofence] = useState(false);
   const [isConnected, setIsConnected] = useState(false); // ✅ Toggle state
+  const [searchedPlace, setSearchedPlace] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [mapKey, setMapKey] = useState(`main-map-${Date.now()}`);
+
+  // Force map remount when connection state changes
+  useEffect(() => {
+    setMapKey(
+      `main-map-${isConnected ? "connected" : "disconnected"}-${Date.now()}`
+    );
+  }, [isConnected]);
+
+  // Set home location when first connected
+  useEffect(() => {
+    if (isConnected && !homeLocation) {
+      setHomeLocation({
+        latitude: trackerData.latitude,
+        longitude: trackerData.longitude,
+      });
+    }
+  }, [isConnected, homeLocation, trackerData]);
 
   useEffect(() => {
     if (!isConnected) return; // ✅ Updates only when connected
@@ -49,10 +82,10 @@ export default function TailTrackerDashboard() {
         ] as "Low" | "Moderate" | "High",
       }));
 
-      if (geofenceRadius) {
+      if (geofenceRadius && homeLocation) {
         const distance = calculateDistance(
-          mockTailTrackerData.latitude,
-          mockTailTrackerData.longitude,
+          homeLocation.latitude,
+          homeLocation.longitude,
           newLatitude,
           newLongitude
         );
@@ -75,6 +108,7 @@ export default function TailTrackerDashboard() {
     trackerData.longitude,
     geofenceRadius,
     isOutsideGeofence,
+    homeLocation,
   ]);
 
   const handleSaveGeofence = (radius: number) => {
@@ -83,6 +117,24 @@ export default function TailTrackerDashboard() {
       title: "Geofence Updated",
       description: `New geofence radius set to ${radius} meters.`,
     });
+  };
+
+  // Reset connection state and home location when disconnected
+  const handleConnectToggle = (connected: boolean) => {
+    setIsConnected(connected);
+    if (!connected) {
+      // Keep home location when disconnecting
+      setIsOutsideGeofence(false);
+    }
+  };
+
+  // Handler for search results and searched place
+  const handleSearchUpdate = (
+    place: { latitude: number; longitude: number } | null,
+    results: any[]
+  ) => {
+    setSearchedPlace(place);
+    setSearchResults(results);
   };
 
   const calculateDistance = (
@@ -114,9 +166,7 @@ export default function TailTrackerDashboard() {
 
           {/* ✅ Toggle Connection */}
           <motion.div>
-            <ConnectTailTrackerButton
-              onConnectToggle={() => setIsConnected((prev) => !prev)}
-            />
+            <ConnectTailTrackerButton onConnectToggle={handleConnectToggle} />
           </motion.div>
 
           {isOutsideGeofence && (
@@ -136,7 +186,7 @@ export default function TailTrackerDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Battery className="mr-2" /> Battery
+                  <Battery className="mr-2 inline" /> Battery
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -147,7 +197,7 @@ export default function TailTrackerDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Activity className="mr-2" /> Activity Level
+                  <Activity className="mr-2 inline" /> Activity Level
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -158,7 +208,7 @@ export default function TailTrackerDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Clock className="mr-2" /> Last Update
+                  <Clock className="mr-2 inline" /> Last Update
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -176,7 +226,11 @@ export default function TailTrackerDashboard() {
                 <CardTitle>Search Nearby Services</CardTitle>
               </CardHeader>
               <CardContent>
-                <SearchFeature />
+                <SearchFeature
+                  petLocation={trackerData}
+                  isConnected={isConnected}
+                  onSearchUpdate={handleSearchUpdate}
+                />
               </CardContent>
             </Card>
           </motion.div>
@@ -196,14 +250,21 @@ export default function TailTrackerDashboard() {
             />
           </div>
         ) : (
-          <MockGPSMap
-            key={isConnected ? "connected-map" : "disconnected-map"}
-            latitude={trackerData.latitude}
-            longitude={trackerData.longitude}
-            geofenceRadius={geofenceRadius || undefined}
-            className="w-full h-[500px]"
-          />
+          <div className="h-[500px] rounded-lg overflow-hidden">
+            <MockGPSMap
+              key={mapKey}
+              latitude={trackerData.latitude}
+              longitude={trackerData.longitude}
+              homeLocation={homeLocation}
+              geofenceRadius={geofenceRadius || undefined}
+              isConnected={isConnected}
+              searchedPlace={searchedPlace}
+              searchResults={searchResults}
+              className="w-full h-full"
+            />
+          </div>
         )}
+
         {/* ✅ Mock GPS Tracking Details */}
         {isConnected && (
           <div className="mt-4 p-4 bg-white dark:bg-gray-900 shadow rounded-lg">
