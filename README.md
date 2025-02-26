@@ -99,7 +99,17 @@ npm run dev
 ```
 
 ---
+####4️🔑 Setting Up PawPal AI Assistant
 
+PawPal AI Assistant requires a Google AI Studio API key (Gemini-2.0-Flash model). Follow these steps:
+
+1️⃣ Get API Key from Google AI Studio.
+2️⃣ Create a local environment variable and store the API key securely.
+3️⃣ Locate the utils/geminiService.ts file.
+4️⃣ Paste the API key into the file like this:
+```bash
+const GEMINI_API_KEY = "your-api-key-here"
+```
 ## 📌 Upcoming Features
 
 🔹 **Pet Emergency Alerts** – Receive instant alerts for critical health issues.  
