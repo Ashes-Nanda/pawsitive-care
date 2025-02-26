@@ -1,7 +1,7 @@
-import "../styles/globals.css"; // Use correct relative path
-import { Sidebar } from "@/components/Sidebar";
-import Header from "@/components/Header";
-import ClientPathnameHandler from "@/components/ClientPathnameHandler"; // Import Client Component
+import "../styles/globals.css";
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: "Pet Care Hub",
@@ -12,13 +12,13 @@ export const metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en" className="dark">
-      <body>
-        <ClientPathnameHandler>{children}</ClientPathnameHandler>
+      <body className={inter.className}>
+        {children}
       </body>
     </html>
-  );
+  )
 }
