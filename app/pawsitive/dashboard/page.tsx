@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Dashboard from '@/components/Dashboard'
 import { LoadingScreen } from '@/components/LoadingScreen'
+import { Sidebar } from '@/components/Sidebar'
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -10,7 +11,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 3000) // Adjust this delay as needed
+    }, 3000)
 
     return () => clearTimeout(timer)
   }, [])
@@ -20,8 +21,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-900">
-      <Dashboard />
+    <div className="flex min-h-screen bg-zinc-100 dark:bg-zinc-900">
+      <Sidebar />
+      <main className="flex-1 p-6">
+        <Dashboard />
+      </main>
     </div>
   )
 }
