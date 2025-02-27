@@ -1,21 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { db } from "@/lib/firebase"; // Ensure this points to your Firebase setup
+import { doc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
 
 export default function SignUpPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    // User Info
     name: "",
     email: "",
     password: "",
-    // Pet Info
     petName: "",
     species: "",
     breed: "",
@@ -30,17 +30,23 @@ export default function SignUpPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    router.push("/signin");
+    try {
+      // Save user data in Firestore under 'users' collection
+      await setDoc(doc(db, "users", "user1"), formData);
+
+      console.log("User registered successfully:", formData);
+      router.push("/profile");
+    } catch (error) {
+      console.error("Error saving user data:", error);
+    }
   };
 
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold text-emerald-400 mb-6">Sign Up</h1>
 
-      {/* Google Sign Up Button */}
       <Button
         onClick={() => console.log("Google sign up clicked")}
         className="w-full mb-4 flex items-center justify-center gap-2 bg-white text-black border hover:bg-gray-100"
@@ -61,7 +67,6 @@ export default function SignUpPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Personal Information Card */}
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
@@ -102,7 +107,6 @@ export default function SignUpPage() {
           </CardContent>
         </Card>
 
-        {/* Pet Information Card */}
         <Card>
           <CardHeader>
             <CardTitle>Pet Information</CardTitle>
@@ -162,54 +166,14 @@ export default function SignUpPage() {
                 />
               </div>
             </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="medicalConditions">Medical Conditions</Label>
-              <Input
-                id="medicalConditions"
-                name="medicalConditions"
-                value={formData.medicalConditions}
-                onChange={handleChange}
-                placeholder="Enter conditions separated by commas"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="medications">Medications</Label>
-              <Input
-                id="medications"
-                name="medications"
-                value={formData.medications}
-                onChange={handleChange}
-                placeholder="Enter medications separated by commas"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="allergies">Allergies</Label>
-              <Input
-                id="allergies"
-                name="allergies"
-                value={formData.allergies}
-                onChange={handleChange}
-                placeholder="Enter allergies separated by commas"
-              />
-            </div>
           </CardContent>
         </Card>
 
         <div className="flex gap-4">
-          <Button
-            type="submit"
-            className="bg-emerald-500 text-white hover:bg-emerald-600"
-          >
+          <Button type="submit" className="bg-emerald-500 text-white hover:bg-emerald-600">
             Sign Up
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/signin")}
-          >
+          <Button type="button" variant="outline" onClick={() => router.push("/signin")}>
             Already have an account? Sign In
           </Button>
         </div>
