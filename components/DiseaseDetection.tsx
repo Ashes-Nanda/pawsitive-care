@@ -25,9 +25,7 @@ const symptoms: Symptom[] = [
   { id: 'breathing', question: 'How is your pet\'s breathing?', type: 'select', options: ['Normal', 'Rapid', 'Labored'] },
   { id: 'skin', question: 'Are there any changes in your pet\'s skin or coat?', type: 'select', options: ['No changes', 'Dry/flaky skin', 'Rash or redness', 'Hair loss'] },
   { id: 'urination', question: 'Has there been any change in your pet\'s urination habits?', type: 'select', options: ['No changes', 'Increased frequency', 'Decreased frequency', 'Blood in urine'] },
-  { id: 'behavior', question: 'Have you noticed any changes in your pet\'s behavior?', type: 'select', options: ['No changes', 'More aggressive', 'More withdrawn', 'Confused or disoriented'] },
-  { id: 'temperature', question: 'What is your pet\'s body temperature?', type: 'slider', range: [35, 42] }
-]
+  { id: 'behavior', question: 'Have you noticed any changes in your pet\'s behavior?', type: 'select', options: ['No changes', 'More aggressive', 'More withdrawn', 'Confused or disoriented'] },]
 
 export default function DiseaseDetection() {
   const [answers, setAnswers] = useState<Record<string, string | number>>({})
