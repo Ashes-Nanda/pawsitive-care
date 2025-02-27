@@ -81,6 +81,17 @@ export function Sidebar() {
           </Button>
         </Link>
       </div>
+      <div className="p-4">
+        <Link href="/" passHref>
+        <Button 
+          variant="outline" 
+          className="w-full mt-2 bg-green-500 text-white hover:bg-green-600" // Green button styling
+          onClick={() => console.log('Sign Out clicked')} // Placeholder for sign out action
+        >
+          Sign Out
+        </Button>
+        </Link>
+      </div>
     </div>
   )
 }
