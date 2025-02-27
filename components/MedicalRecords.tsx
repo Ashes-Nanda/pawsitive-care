@@ -1,69 +1,127 @@
-"use client"
+"use client";
 
-import { useState } from 'react'
-import { Upload, File, Trash2, Download, Printer } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { toast } from "@/components/ui/use-toast"
-import { db, storage } from "@/lib/firebase"
-import { ref, uploadBytes, getDownloadURL, deleteObject, listAll } from "firebase/storage"
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
+import { useState, useEffect } from "react";
+import { Upload, File, Trash2, Download, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/components/ui/use-toast";
+import { storage, db } from "@/lib/firebase"; 
+import { ref, uploadBytes, getDownloadURL, deleteObject, listAll } from "firebase/storage";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
-// Hardcoded user ID (since there's only one user)
-const USER_ID = "single-user"
+// Hardcoded document reference in Firestore
+const RECORD_REF = doc(db, "record", "medrec");
 
 interface MedicalRecord {
-  id: string
-  name: string
-  url: string
+  id: string;
+  name: string;
+  url: string;
 }
 
 export default function MedicalRecords() {
-  const [records, setRecords] = useState<MedicalRecord[]>([])
+  const [records, setRecords] = useState<MedicalRecord[]>([]);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const newRecord: MedicalRecord = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type,
-        url: URL.createObjectURL(file)
+  // Fetch uploaded files from Firebase Storage & Firestore
+  useEffect(() => {
+    const fetchRecords = async () => {
+      try {
+        // Fetch records from Firebase Storage
+        const storageRef = ref(storage, "medical-records");
+        const result = await listAll(storageRef);
+        const storageFiles = await Promise.all(
+          result.items.map(async (item) => ({
+            id: item.name,
+            name: item.name,
+            url: await getDownloadURL(item),
+          }))
+        );
+
+        // Fetch records from Firestore
+        const docSnap = await getDoc(RECORD_REF);
+        const firestoreRecords: MedicalRecord[] = docSnap.exists() ? docSnap.data().records || [] : [];
+
+        // Merge both Storage & Firestore data
+        const mergedRecords = [...firestoreRecords, ...storageFiles].filter(
+          (v, i, a) => a.findIndex(t => t.id === v.id) === i
+        );
+
+        setRecords(mergedRecords);
+
+        // Save merged data to Firestore if needed
+        if (docSnap.exists()) {
+          await updateDoc(RECORD_REF, { records: mergedRecords });
+        } else {
+          await setDoc(RECORD_REF, { records: mergedRecords });
+        }
+      } catch (error) {
+        console.error("Error fetching records:", error);
       }
-      setRecords([...records, newRecord])
-      toast({
-        title: "File Uploaded",
-        description: `${file.name} has been successfully uploaded.`,
-      })
-    }
-  }
+    };
 
-  const handleDelete = (id: string) => {
-    setRecords(records.filter(record => record.id !== id))
+    fetchRecords();
+  }, []);
+
+  // Handle File Upload to Firebase Storage & Firestore
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const fileRef = ref(storage, `medical-records/${file.name}`);
+    await uploadBytes(fileRef, file);
+    const url = await getDownloadURL(fileRef);
+
+    const newRecord: MedicalRecord = { id: file.name, name: file.name, url };
+    const updatedRecords = [...records, newRecord];
+    setRecords(updatedRecords);
+
+    // Save to Firestore
+    await setDoc(RECORD_REF, { records: updatedRecords }, { merge: true });
+
     toast({
-      title: "File Deleted",
-      description: "The file has been removed from your records.",
-      variant: "destructive",
-    })
-  }
+      title: "File Uploaded",
+      description: `${file.name} has been successfully uploaded.`,
+    });
+  };
+
+  // Handle File Deletion from Firebase Storage & Firestore
+  const handleDelete = async (id: string) => {
+    try {
+      // Delete from Storage
+      const fileRef = ref(storage, `medical-records/${id}`);
+      await deleteObject(fileRef);
+
+      // Delete from Firestore
+      const updatedRecords = records.filter(record => record.id !== id);
+      setRecords(updatedRecords);
+      await updateDoc(RECORD_REF, { records: updatedRecords });
+
+      toast({
+        title: "File Deleted",
+        description: "The file has been removed from your records.",
+        variant: "destructive",
+      });
+    } catch (error) {
+      console.error("Error deleting file:", error);
+    }
+  };
 
   // Handle File Download
   const handleDownload = (record: MedicalRecord) => {
-    const link = document.createElement("a")
-    link.href = record.url
-    link.download = record.name
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+    const link = document.createElement("a");
+    link.href = record.url;
+    link.download = record.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Handle Print
   const handlePrint = (record: MedicalRecord) => {
-    const printWindow = window.open(record.url, "_blank")
-    printWindow?.print()
-  }
+    const printWindow = window.open(record.url, "_blank");
+    printWindow?.print();
+  };
 
   return (
     <Card>
@@ -111,5 +169,5 @@ export default function MedicalRecords() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
