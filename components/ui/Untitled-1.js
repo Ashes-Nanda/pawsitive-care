@@ -12,41 +12,35 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        playfair: ["Playfair Display", "serif"],
         lora: ["Lora", "serif"],
-        cinzel: ["Cinzel", "serif"],
-        poppins: ["Poppins", "sans-serif"],
-        garamond: ["Garamond", "serif"],
-        montserrat: ["Montserrat", "sans-serif"],
-        merriweather: ["Merriweather", "serif"],
-        roboto: ["Roboto", "sans-serif"],
+        nunito: ["Nunito", "sans-serif"],
       },
       colors: {
-        border: "#C9A66B", // Glowing Soft Gold
+        border: "#E0E0E0", // Container border color
         input: "#D1D5DB", // Grayish input
         ring: "#6366F1", // Blue ring focus
-        background: "#1E1E2E", // Deep Navy Blue
-        foreground: "#F5F5F5", // Warm White
+        background: "#f0f0f0", // Light gray background
+        foreground: "#333333", // Dark text
 
         primary: {
-          DEFAULT: "#00796B", // Deep Teal
-          foreground: "#E3B778", // Gold text
+          DEFAULT: "#008080", // Teal
+          foreground: "#FFFFFF", // White text
         },
         secondary: {
-          DEFAULT: "#2A2A3A", // Slate Gray
-          foreground: "#F5F5F5", // Warm White text on secondary
+          DEFAULT: "#F5F5DC", // Beige
+          foreground: "#333333", // Dark text on secondary
         },
         accent: {
-          DEFAULT: "#E3B778", // Soft Gold
-          foreground: "#1E1E2E", // Dark text on accent
+          DEFAULT: "#FFD700", // Gold
+          foreground: "#333333", // Dark text on accent
         },
         info: {
           DEFAULT: "#FF8C42", // Soft orange
           foreground: "#333333", // Dark text on info
         },
         dark: {
-          DEFAULT: "#1E1E2E", // Deep Navy Blue
-          foreground: "#F5F5F5", // Warm White text on dark
+          DEFAULT: "#1E3A5F", // Deep navy blue
+          foreground: "#FFFFFF", // White text on dark
         },
         destructive: {
           DEFAULT: "#DC2626", // Red for errors
@@ -61,17 +55,12 @@ module.exports = {
           foreground: "#1F2937",
         },
         card: {
-          DEFAULT: "#2A2A3A", // Slate Gray card
-          foreground: "#F5F5F5", // Warm White text on card
+          DEFAULT: "#F5F5DC", // Beige card
+          foreground: "#333333", // Dark text on card
         },
         heading: {
-          DEFAULT: "#E3B778", // Soft Gold heading
-          foreground: "#E3B778",
-        },
-        text: {
-          light: "#F5F5F5", // Light text for contrast
-          gray: "#D1D5DB", // Medium gray text
-          dark: "#1E1E2E", // Dark text
+          DEFAULT: "#000000", // Black heading
+          foreground: "#000000",
         },
       },
       borderRadius: {
@@ -88,15 +77,10 @@ module.exports = {
           "0%": { transform: "scale(0.95)", opacity: 0 },
           "100%": { transform: "scale(1)", opacity: 1 },
         },
-        slideUp: {
-          "0%": { transform: "translateY(10px)", opacity: 0 },
-          "100%": { transform: "translateY(0)", opacity: 1 },
-        },
       },
       animation: {
         fadeIn: "fadeIn 0.5s ease-in-out",
         bounceIn: "bounceIn 0.4s ease-out",
-        slideUp: "slideUp 0.5s ease-in-out",
       },
     },
   },

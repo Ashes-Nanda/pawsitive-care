@@ -46,8 +46,8 @@ const GeofenceSetup: React.FC<GeofenceSetupProps> = ({ onSave }) => {
       animate="visible"
     >
       <motion.div className="flex items-center space-x-2" variants={itemVariants}>
-        <AlertCircle className="text-yellow-500" />
-        <p className="text-sm text-yellow-500">Set a geofence to receive alerts when your pet leaves the area.</p>
+        <AlertCircle className="text-var(--color-accent)" />
+        <p className="text-sm text-var(--color-accent)">Set a geofence to receive alerts when your pet leaves the area.</p>
       </motion.div>
       <motion.div className="space-y-2" variants={itemVariants}>
         <Label htmlFor="geofence-radius">Geofence Radius (meters)</Label>

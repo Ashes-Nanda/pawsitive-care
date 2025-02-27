@@ -226,18 +226,18 @@ export default function DiseaseDetection() {
               <Button
                 type="button"
                 onClick={handlePrevious}
-                disabled={currentStep === 0}
+                disabled={!answers[symptoms[currentStep].id]}
                 variant="outline"
-                className="text-zinc-300"
+                className="text-var(--color-secondary)"
               >
-                <ArrowLeft className="mr-2" /> Previous
+                <ArrowRight className="mr-2" /> Previous
               </Button>
               {currentStep < symptoms.length - 1 ? (
                 <Button
-                  type="button"
+                  type="submit"
                   onClick={handleNext}
-                  disabled={!answers[symptoms[currentStep].id]}
-                  className="text-zinc-300"
+                  disabled={Object.keys(answers).length !== symptoms.length || isLoading}
+                  className="w-full mt-4 bg-var(--color-dark) text-white hover:bg-var(--color-dark)/85"
                 >
                   Next <ArrowRight className="ml-2" />
                 </Button>
@@ -256,21 +256,21 @@ export default function DiseaseDetection() {
       )}
       {results.length > 0 && (
         <div className={`mt-4 p-4 bg-zinc-800 rounded-md transition-opacity duration-500 ${showResults ? 'opacity-100' : 'opacity-0'}`}>
-          <h3 className="text-lg font-semibold text-emerald-400 mb-2">Results:</h3>
+          <h3 className="text-lg font-semibold text-var(--color-accent) mb-2">Results:</h3>
           <ul className="list-disc list-inside space-y-1">
             {results.map((disease, index) => (
-              <li key={index} className="text-zinc-300">{disease}</li>
+              <li key={index} className="text-var(--color-secondary)">{disease}</li>
             ))}
           </ul>
           <Button
             onClick={handleReset}
-            className="mt-4 bg-black text-white hover:bg-gray-800"
+            className="mt-4 bg-var(--color-dark) text-white hover:bg-var(--color-dark)/85"
           >
             <RotateCcw className="mr-2" /> Start Over
           </Button>
         </div>
       )}
-      <div className="mt-4 flex items-center text-yellow-400">
+      <div className="mt-4 flex items-center text-var(--color-info)">
         <AlertCircle className="w-5 h-5 mr-2" />
         <span className="text-sm">This is a preliminary assessment. Always consult a veterinarian for accurate diagnosis.</span>
       </div>

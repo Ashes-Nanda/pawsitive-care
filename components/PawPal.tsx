@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Send, Search, ThumbsUp, ThumbsDown, PawPrint, Check, CheckCheck } from 'lucide-react'
+import { Send, Search, ThumbsUp, ThumbsDown, Check, CheckCheck } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -149,24 +149,24 @@ export default function PawPal() {
   )
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-white dark:bg-zinc-800 shadow-lg">
-      <CardHeader className="bg-emerald-600 dark:bg-emerald-700 text-white p-4 flex justify-between items-center">
-        <CardTitle className="flex items-center text-2xl">
+    <Card className="w-full max-w-md mx-auto bg-background text-foreground shadow-lg">
+      <CardHeader className="bg-dark text-heading p-4 flex justify-between items-center">
+        <CardTitle className="flex items-center text-2xl font-playfair">
           <PawPalLogo className="w-8 h-8 mr-2" />
           PawPal
         </CardTitle>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-foreground" />
           <Input
             type="text"
             placeholder="Search messages..."
-            className="pl-10 pr-4 py-2 rounded-full bg-emerald-500 dark:bg-emerald-600 text-white placeholder-emerald-200 focus:outline-none focus:ring-2 focus:ring-white"
+            className="pl-10 pr-4 py-2 rounded-full bg-primary text-foreground placeholder-foreground focus:outline-none focus:ring-2 focus:ring-accent"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </CardHeader>
-      <CardContent className="h-[400px] overflow-y-auto p-4 space-y-4">
+      <CardContent className="h-[400px] overflow-y-auto p-4 space-y-4 font-lora">
         {filteredMessages.map((message) => (
           <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
             <motion.div
@@ -175,8 +175,8 @@ export default function PawPal() {
               transition={{ duration: 0.3 }}
               className={`max-w-[70%] ${
                 message.sender === 'user'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
+                  ? 'bg-primary text-foreground'
+                  : 'bg-secondary text-accent'
               } rounded-lg p-3 shadow-md mb-2`}
             >
               <div className="flex items-center mb-1">
@@ -186,18 +186,18 @@ export default function PawPal() {
                     <AvatarFallback>PP</AvatarFallback>
                   </Avatar>
                 )}
-                <span className={`text-xs ${message.sender === 'user' ? 'text-teal-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                <span className={`text-xs ${message.sender === 'user' ? 'text-accent' : 'text-foreground'}`}>
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
                 {message.sender === 'user' && (
                   <span className="ml-2">
-                    {message.status === 'sent' && <Check className="w-4 h-4 text-zinc-400" />}
-                    {message.status === 'delivered' && <CheckCheck className="w-4 h-4 text-zinc-400" />}
-                    {message.status === 'read' && <CheckCheck className="w-4 h-4 text-teal-500" />}
+                    {message.status === 'sent' && <Check className="w-4 h-4 text-foreground" />}
+                    {message.status === 'delivered' && <CheckCheck className="w-4 h-4 text-foreground" />}
+                    {message.status === 'read' && <CheckCheck className="w-4 h-4 text-accent" />}
                   </span>
                 )}
               </div>
-              <p className={`text-sm ${message.sender === 'user' ? 'text-white' : 'text-zinc-800 dark:text-white'}`}>
+              <p className={`text-sm ${message.sender === 'user' ? 'text-foreground' : 'text-accent'}`}>
                 {message.text}
               </p>
               {message.quickReplies && (
@@ -208,7 +208,7 @@ export default function PawPal() {
                       variant="secondary"
                       size="sm"
                       onClick={() => handleQuickReply(reply)}
-                      className="text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-700 dark:text-emerald-100 dark:hover:bg-emerald-600 transition-colors"
+                      className="text-xs bg-accent text-dark hover:bg-accent/90 transition-colors"
                     >
                       {reply}
                     </Button>
@@ -230,26 +230,25 @@ export default function PawPal() {
         ))}
         <div ref={messagesEndRef} />
       </CardContent>
-      <CardFooter className="bg-zinc-100 dark:bg-zinc-800 p-4">
+      <CardFooter className="bg-secondary p-4">
         <form onSubmit={handleSend} className="flex w-full space-x-2">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
-            className="flex-grow bg-white dark:bg-zinc-700 resize-none rounded-md border-emerald-300 dark:border-emerald-600 focus:ring-emerald-500 focus:border-emerald-500"
+            className="flex-grow bg-secondary resize-none rounded-md border-accent focus:ring-accent focus:border-accent"
             rows={1}
           />
-          <Button type="submit" className="bg-black hover:bg-gray-800 text-white">
+          <Button type="submit" className="bg-primary hover:bg-primary/85 text-foreground">
             <Send className="w-4 h-4" />
           </Button>
         </form>
       </CardFooter>
-      <div className="px-4 pb-4 bg-zinc-100 dark:bg-zinc-800">
-        <Button variant="outline" onClick={handleSetDogProfile} className="w-full bg-black hover:bg-gray-800 text-white border-emerald-300 dark:border-emerald-600">
+      <div className="px-4 pb-4 bg-secondary">
+        <Button variant="outline" onClick={handleSetDogProfile} className="w-full bg-primary hover:bg-primary/85 text-foreground border-accent">
           {dogProfile.name ? `Update ${dogProfile.name}'s Profile` : 'Set Dog Profile'}
         </Button>
       </div>
     </Card>
   )
 }
-

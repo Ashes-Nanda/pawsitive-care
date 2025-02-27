@@ -1,3 +1,11 @@
+:root {
+  --color-primary: #6545a4;
+  --color-secondary: #a862ea;
+  --color-accent: #bf62ea;
+  --color-info: #6383ea;
+  --color-dark: #465ca4;
+}
+
 @keyframes pointer-spin {
   from {
     transform: rotate(0deg);
@@ -9,5 +17,4 @@
 
 .animate-pointer {
   animation: pointer-spin 2s linear infinite;
-}
-
+};
