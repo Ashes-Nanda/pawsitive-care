@@ -37,7 +37,7 @@ export default function SignUpPage() {
       await setDoc(doc(db, "users", "user1"), formData);
 
       console.log("User registered successfully:", formData);
-      router.push("/profile");
+      router.push("/");
     } catch (error) {
       console.error("Error saving user data:", error);
     }
