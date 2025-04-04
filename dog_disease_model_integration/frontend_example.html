@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Disease Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .symptoms-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .symptom-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .loading {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dog Disease Detection</h1>
+    
+    <div class="container">
+        <div>
+            <h2>Select Symptoms</h2>
+            <p>Check the symptoms your dog is experiencing:</p>
+            <div id="symptoms-container" class="symptoms-container">
+                <!-- Symptoms will be loaded here -->
+            </div>
+        </div>
+        
+        <button id="predict-btn">Predict Disease</button>
+        <div id="loading" class="loading">Loading...</div>
+        
+        <div id="result" class="result" style="display: none;">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+    
+    <script>
+        // API base URL
+        const API_BASE_URL = 'http://localhost:5000';
+        
+        // DOM elements
+        const symptomsContainer = document.getElementById('symptoms-container');
+        const predictBtn = document.getElementById('predict-btn');
+        const resultDiv = document.getElementById('result');
+        const loadingDiv = document.getElementById('loading');
+        
+        // Store symptoms data
+        let symptomsData = [];
+        
+        /**
+         * Check if the API is running
+         * @returns {Promise<Object>} API health status
+         */
+        async function checkApiHealth() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error checking API health:', error);
+                return { status: 'error', message: error.message };
+            }
+        }
+        
+        /**
+         * Get a list of all symptoms
+         * @returns {Promise<Object>} List of symptoms
+         */
+        async function getSymptoms() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/symptoms`);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error getting symptoms:', error);
+                return { status: 'error', message: error.message };
+            }
+        }
+        
+        /**
+         * Predict disease based on symptoms
+         * @param {Array<number>} symptoms - Array of 86 binary values (0 or 1)
+         * @returns {Promise<Object>} Prediction result
+         */
+        async function predictDisease(symptoms) {
+            try {
+                // Ensure symptoms array has exactly 86 values
+                if (symptoms.length !== 86) {
+                    return { 
+                        status: 'error', 
+                        message: `Symptoms array must have exactly 86 values, got ${symptoms.length}` 
+                    };
+                }
+        
+                const response = await fetch(`${API_BASE_URL}/predict`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ symptoms }),
+                });
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error predicting disease:', error);
+                return { status: 'error', message: error.message };
+            }
+        }
+        
+        /**
+         * Initialize the application
+         */
+        async function init() {
+            // Check API health
+            const health = await checkApiHealth();
+            
+            if (health.status !== 'success') {
+                showError('API is not running. Please start the Flask server.');
+                return;
+            }
+            
+            // Get symptoms
+            const result = await getSymptoms();
+            
+            if (result.status !== 'success') {
+                showError(`Error loading symptoms: ${result.message}`);
+                return;
+            }
+            
+            // Store symptoms data
+            symptomsData = result.symptoms;
+            
+            // Create symptom checkboxes
+            symptomsData.forEach((symptom, index) => {
+                const symptomItem = document.createElement('div');
+                symptomItem.className = 'symptom-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `symptom-${index}`;
+                checkbox.value = index;
+                
+                const label = document.createElement('label');
+                label.htmlFor = `symptom-${index}`;
+                label.textContent = symptom;
+                
+                symptomItem.appendChild(checkbox);
+                symptomItem.appendChild(label);
+                symptomsContainer.appendChild(symptomItem);
+            });
+            
+            // Add event listener to predict button
+            predictBtn.addEventListener('click', predict);
+        }
+        
+        /**
+         * Predict disease based on selected symptoms
+         */
+        async function predict() {
+            // Show loading
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            // Get selected symptoms
+            const symptoms = new Array(86).fill(0);
+            
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                const index = parseInt(checkbox.value);
+                if (index >= 0 && index < 86) {
+                    symptoms[index] = 1;
+                }
+            });
+            
+            // Make prediction
+            const result = await predictDisease(symptoms);
+            
+            // Hide loading
+            loadingDiv.style.display = 'none';
+            
+            // Show result
+            if (result.status === 'success') {
+                showSuccess(`Predicted Disease: ${result.disease_name}<br>Confidence: ${(result.confidence * 100).toFixed(2)}%`);
+            } else {
+                showError(`Error: ${result.message}`);
+            }
+        }
+        
+        /**
+         * Show success message
+         * @param {string} message - Success message
+         */
+        function showSuccess(message) {
+            resultDiv.className = 'result success';
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+        }
+        
+        /**
+         * Show error message
+         * @param {string} message - Error message
+         */
+        function showError(message) {
+            resultDiv.className = 'result error';
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+        }
+        
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html> 

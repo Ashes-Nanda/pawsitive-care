@@ -1,11 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AlertCircle, ArrowLeft, ArrowRight, RotateCcw, Upload } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
+import { useResponsive, getResponsiveValue } from "@/lib/responsive";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useToast } from "@/components/ui/use-toast"
 
 interface Symptom {
   id: string
@@ -13,113 +16,168 @@ interface Symptom {
   type: 'select' | 'slider'
   options?: string[]
   range?: [number, number]
+  modelIndices?: number[] // Indices in the model's 86 binary inputs
 }
 
+// Define the mapping between our UI symptoms and the model's binary inputs
 const symptoms: Symptom[] = [
   {
-    id: 'appetite',
-    question: 'How is your pet\'s appetite?',
+    id: 'fever',
+    question: 'Does your pet have a fever? (Temperature above 39°C/102°F)',
     type: 'select',
-    options: ['Normal', 'Increased', 'Decreased', 'No appetite']
+    options: ['No', 'Yes'],
+    modelIndices: [0] // fever
+  },
+  {
+    id: 'appetite',
+    question: 'Has your pet\'s appetite changed recently?',
+    type: 'select',
+    options: ['Normal appetite', 'Decreased appetite', 'No appetite'],
+    modelIndices: [2] // loss_of_appetite
   },
   {
     id: 'energy',
     question: 'How is your pet\'s energy level?',
     type: 'select',
-    options: ['Normal', 'Hyperactive', 'Lethargic']
+    options: ['Normal energy', 'Lethargic', 'Very lethargic'],
+    modelIndices: [7] // lethargy
   },
   {
     id: 'water',
-    question: 'How much water is your pet drinking?',
+    question: 'Has your pet\'s water intake changed?',
     type: 'select',
-    options: ['Normal amount', 'Drinking more than usual', 'Drinking less than usual']
+    options: ['Normal amount', 'Drinking more than usual'],
+    modelIndices: [9] // increased_drinking
+  },
+  {
+    id: 'urination',
+    question: 'Has your pet\'s urination frequency changed?',
+    type: 'select',
+    options: ['Normal frequency', 'Increased frequency'],
+    modelIndices: [10] // increased_urination
   },
   {
     id: 'vomiting',
     question: 'Is your pet vomiting?',
     type: 'select',
-    options: ['No', 'Occasionally', 'Frequently']
+    options: ['No', 'Occasionally', 'Frequently'],
+    modelIndices: [11] // vomiting
   },
   {
     id: 'diarrhea',
     question: 'Does your pet have diarrhea?',
     type: 'select',
-    options: ['No', 'Mild', 'Severe']
-  },
-  {
-    id: 'coughing',
-    question: 'Is your pet coughing?',
-    type: 'select',
-    options: ['No', 'Occasionally', 'Frequently']
+    options: ['No', 'Mild', 'Severe'],
+    modelIndices: [12] // diarrhea
   },
   {
     id: 'breathing',
-    question: 'How is your pet\'s breathing?',
+    question: 'Is your pet experiencing breathing difficulties?',
     type: 'select',
-    options: ['Normal', 'Rapid', 'Labored']
+    options: ['Normal breathing', 'Labored breathing', 'Very labored breathing'],
+    modelIndices: [5] // breathing_difficulty
   },
   {
     id: 'skin',
-    question: 'Are there any changes in your pet\'s skin or coat?',
+    question: 'Does your pet have any skin rashes or abnormalities?',
     type: 'select',
-    options: ['No changes', 'Dry/flaky skin', 'Rash or redness', 'Hair loss']
-  },
-  {
-    id: 'urination',
-    question: 'Has there been any change in your pet\'s urination habits?',
-    type: 'select',
-    options: ['No changes', 'Increased frequency', 'Decreased frequency', 'Blood in urine']
-  },
-  {
-    id: 'behavior',
-    question: 'Have you noticed any changes in your pet\'s behavior?',
-    type: 'select',
-    options: ['No changes', 'More aggressive', 'More withdrawn', 'Confused or disoriented']
-  },
-  {
-    id: 'temperature',
-    question: 'What is your pet\'s body temperature?',
-    type: 'slider',
-    range: [35, 42]
+    options: ['No', 'Yes'],
+    modelIndices: [15] // skin_rashes
   }
 ]
 
-async function detectDisease(answers: Record<string, string | number>): Promise<string[]> {
-  // Simulate an API call to a server-side ML model
-  await new Promise(resolve => setTimeout(resolve, 1500))
+interface PredictionResult {
+  disease_name: string
+  confidence: number
+  status: string
+}
 
-  // This is a placeholder for the ML model's decision logic
-  // In a real-world scenario, this would be replaced with actual ML model predictions
-  const detectedDiseases: string[] = []
-  const symptoms = Object.values(answers)
-
-  if (symptoms.includes('No appetite') || symptoms.includes('Lethargic')) {
-    detectedDiseases.push('Canine Parvovirus')
+async function detectDisease(answers: Record<string, string | number>): Promise<PredictionResult> {
+  try {
+    // Create a binary array of 86 zeros (model expects 86 binary inputs)
+    const binarySymptoms = new Array(86).fill(0)
+    
+    // Map our UI answers to the model's binary inputs
+    Object.entries(answers).forEach(([symptomId, answer]) => {
+      const symptom = symptoms.find(s => s.id === symptomId)
+      if (symptom && symptom.modelIndices) {
+        // For each model index associated with this symptom
+        symptom.modelIndices.forEach(index => {
+          if (index < 86) { // Ensure index is within bounds
+            // Set the binary value based on the answer
+            if (symptom.type === 'select') {
+              // For select inputs, set to 1 if not "Normal" or "No" or "No changes"
+              if (answer !== 'Normal' && answer !== 'No' && answer !== 'No changes') {
+                binarySymptoms[index] = 1
+              }
+            } else if (symptom.type === 'slider') {
+              // For slider inputs, set to 1 if temperature is above normal (38.5°C for dogs)
+              if (typeof answer === 'number' && answer > 38.5) {
+                binarySymptoms[index] = 1
+              }
+            }
+          }
+        })
+      }
+    })
+    
+    // Call the API
+    const response = await fetch('http://localhost:5000/predict', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ symptoms: binarySymptoms }),
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `API error: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    
+    if (data.status === 'success') {
+      return {
+        disease_name: data.disease_name,
+        confidence: data.confidence,
+        status: data.status
+      }
+    } else {
+      throw new Error(data.message || 'Unknown error')
+    }
+  } catch (error) {
+    console.error('Error detecting disease:', error)
+    throw error
   }
-  if (symptoms.includes('Lethargic') && symptoms.includes('Weight loss')) {
-    detectedDiseases.push('Feline Leukemia Virus (FeLV)')
-  }
-  if (symptoms.includes('Frequently') && answers.coughing === 'Frequently') {
-    detectedDiseases.push('Kennel Cough')
-  }
-  if (symptoms.includes('Drinking more than usual') && symptoms.includes('Increased frequency')) {
-    detectedDiseases.push('Diabetes Mellitus')
-  }
-  if (symptoms.includes('Rash or redness') || symptoms.includes('Hair loss')) {
-    detectedDiseases.push('Allergies')
-  }
-  // Remove the weight change condition
-
-  return detectedDiseases.length > 0 ? detectedDiseases : ['No specific disease detected']
 }
 
 export default function DiseaseDetection() {
   const [answers, setAnswers] = useState<Record<string, string | number>>({})
   const [currentStep, setCurrentStep] = useState(0)
-  const [results, setResults] = useState<string[]>([])
+  const [prediction, setPrediction] = useState<PredictionResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [image, setImage] = useState<File | null>(null)
   const [showResults, setShowResults] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { isMobile, isTablet } = useResponsive();
+  const { toast } = useToast()
+
+  // Get responsive container width
+  const containerWidth = getResponsiveValue({
+    mobile: "w-full px-4",
+    tablet: "w-3/4 mx-auto px-6",
+    desktop: "w-1/2 mx-auto px-8",
+    default: "w-full px-4"
+  });
+
+  // Get responsive text size
+  const titleSize = getResponsiveValue({
+    mobile: "text-xl",
+    tablet: "text-2xl",
+    desktop: "text-3xl",
+    default: "text-xl"
+  });
 
   const handleAnswerChange = (symptomId: string, answer: string | number) => {
     setAnswers(prev => ({ ...prev, [symptomId]: answer }))
@@ -140,18 +198,38 @@ export default function DiseaseDetection() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    const detectedDiseases = await detectDisease(answers)
-    setResults(detectedDiseases)
-    setIsLoading(false)
-    setTimeout(() => setShowResults(true), 100) // Delay to allow for smooth transition
+    setError(null)
+    
+    try {
+      const result = await detectDisease(answers)
+      setPrediction(result)
+      
+      toast({
+        title: "Analysis Complete",
+        description: `Detected: ${result.disease_name} (${(result.confidence * 100).toFixed(2)}% confidence)`,
+      })
+    } catch (err) {
+      console.error('Error in handleSubmit:', err)
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
+      
+      toast({
+        title: "Error",
+        description: "Failed to analyze symptoms. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+      setTimeout(() => setShowResults(true), 100) // Delay to allow for smooth transition
+    }
   }
 
   const handleReset = () => {
     setAnswers({})
     setCurrentStep(0)
-    setResults([])
+    setPrediction(null)
     setImage(null)
     setShowResults(false)
+    setError(null)
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,14 +241,16 @@ export default function DiseaseDetection() {
   const progress = ((currentStep + 1) / symptoms.length) * 100
 
   return (
-    <div className="glass p-6 rounded-lg">
-      <h2 className="text-2xl font-semibold mb-4 text-emerald-400 neon">Disease Detection</h2>
-      {!results.length && (
+    <div className={`glass p-6 rounded-lg ${containerWidth}`}>
+      <h2 className={`font-semibold mb-4 text-emerald-400 neon ${titleSize}`}>Disease Detection</h2>
+      {!prediction && (
         <>
           <Progress value={progress} className="mb-4" />
           <form onSubmit={handleSubmit} className="space-y-4">
             <div key={symptoms[currentStep].id} className="space-y-2">
-              <Label className="text-emerald-400">{symptoms[currentStep].question}</Label>
+              <Label className={`text-emerald-400 ${isMobile ? "text-sm" : "text-base"}`}>
+                {symptoms[currentStep].question}
+              </Label>
               {symptoms[currentStep].type === 'select' ? (
                 <div className="flex flex-col space-y-2">
                   {symptoms[currentStep].options?.map((option) => (
@@ -184,7 +264,7 @@ export default function DiseaseDetection() {
                         className="text-emerald-500 focus:ring-emerald-500"
                         required
                       />
-                      <span className="text-zinc-300">{option}</span>
+                      <span className={`text-zinc-300 ${isMobile ? "text-sm" : "text-base"}`}>{option}</span>
                     </label>
                   ))}
                 </div>
@@ -226,26 +306,30 @@ export default function DiseaseDetection() {
               <Button
                 type="button"
                 onClick={handlePrevious}
-                disabled={!answers[symptoms[currentStep].id]}
+                disabled={currentStep === 0}
                 variant="outline"
-                className="text-var(--color-secondary)"
+                className={`text-var(--color-secondary) ${isMobile ? "text-sm px-2 py-1" : "px-4 py-2"}`}
               >
-                <ArrowRight className="mr-2" /> Previous
+                <ArrowLeft className={`mr-2 ${isMobile ? "w-4 h-4" : "w-5 h-5"}`} /> Previous
               </Button>
               {currentStep < symptoms.length - 1 ? (
                 <Button
-                  type="submit"
+                  type="button"
                   onClick={handleNext}
-                  disabled={Object.keys(answers).length !== symptoms.length || isLoading}
-                  className="w-full mt-4 bg-var(--color-dark) text-white hover:bg-var(--color-dark)/85"
+                  disabled={!answers[symptoms[currentStep].id]}
+                  className={`w-full mt-4 bg-var(--color-dark) text-white hover:bg-var(--color-dark)/85 ${
+                    isMobile ? "text-sm px-2 py-1" : "px-4 py-2"
+                  }`}
                 >
-                  Next <ArrowRight className="ml-2" />
+                  Next <ArrowRight className={`ml-2 ${isMobile ? "w-4 h-4" : "w-5 h-5"}`} />
                 </Button>
               ) : (
                 <Button
                   type="submit"
                   disabled={Object.keys(answers).length !== symptoms.length || isLoading}
-                  className="w-full mt-4 bg-black text-white hover:bg-gray-800"
+                  className={`w-full mt-4 bg-black text-white hover:bg-gray-800 ${
+                    isMobile ? "text-sm px-2 py-1" : "px-4 py-2"
+                  }`}
                 >
                   {isLoading ? 'Analyzing...' : 'Analyze Results'}
                 </Button>
@@ -254,21 +338,52 @@ export default function DiseaseDetection() {
           </form>
         </>
       )}
-      {results.length > 0 && (
+      {prediction && (
         <div className={`mt-4 p-4 bg-zinc-800 rounded-md transition-opacity duration-500 ${showResults ? 'opacity-100' : 'opacity-0'}`}>
-          <h3 className="text-lg font-semibold text-var(--color-accent) mb-2">Results:</h3>
-          <ul className="list-disc list-inside space-y-1">
-            {results.map((disease, index) => (
-              <li key={index} className="text-var(--color-secondary)">{disease}</li>
-            ))}
-          </ul>
-          <Button
-            onClick={handleReset}
-            className="mt-4 bg-var(--color-dark) text-white hover:bg-var(--color-dark)/85"
-          >
-            <RotateCcw className="mr-2" /> Start Over
-          </Button>
+          <h3 className="text-lg font-semibold text-emerald-400 mb-4">Analysis Results</h3>
+          <Alert>
+            <AlertTitle className="text-emerald-400">Detected Condition</AlertTitle>
+            <AlertDescription>
+              <div className="space-y-2">
+                <p className="text-lg font-medium text-white">{prediction.disease_name}</p>
+                <div className="flex items-center space-x-2">
+                  <div className="w-full bg-zinc-700 rounded-full h-2.5">
+                    <div 
+                      className="bg-emerald-400 h-2.5 rounded-full" 
+                      style={{ width: `${prediction.confidence * 100}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-sm text-zinc-400">{(prediction.confidence * 100).toFixed(1)}%</span>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-zinc-400">
+              This is a preliminary assessment based on the symptoms you've reported. 
+              Please consult with a veterinarian for a proper diagnosis and treatment plan.
+            </p>
+            <Button
+              onClick={handleReset}
+              className="mt-4 bg-emerald-500 text-white hover:bg-emerald-600"
+            >
+              <RotateCcw className="mr-2" /> Start New Assessment
+            </Button>
+          </div>
         </div>
+      )}
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            <p>{error}</p>
+            <p className="text-sm mt-2">
+              Please make sure the API server is running and try again. 
+              If the problem persists, contact support.
+            </p>
+          </AlertDescription>
+        </Alert>
       )}
       <div className="mt-4 flex items-center text-var(--color-info)">
         <AlertCircle className="w-5 h-5 mr-2" />
